@@ -24,12 +24,20 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="WeekLog"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          title: 'WeekLog',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="calendar" color={color} />,
         }}
       />
+      <Tabs.Screen
+        name="History"
+        options={{
+          title: 'Export',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="arrow.up.doc.fill" color={color} />,
+        }}
+      />
+      {/* Settings tab removed: `mealsStore` is a state store, not a page */}
     </Tabs>
   );
 }
