@@ -1,0 +1,76 @@
+# This file contains the fastlane.tools configuration
+# You can find the documentation at https://docs.fastlane.tools
+#
+# For a list of all available actions, check out
+#
+#     https://docs.fastlane.tools/actions
+#
+# For a list of all available plugins, check out
+#
+#     https://docs.fastlane.tools/plugins/available-plugins
+#
+
+# Uncomment the line if you want fastlane to automatically update itself
+# update_fastlane
+
+default_platform(:ios)
+
+platform :ios do
+  desc "Build and upload to TestFlight if more than 80 days since last build"
+  lane :testflight_auto do
+    # Path to store last build timestamp
+    timestamp_file = "../last_build_timestamp.txt"
+
+    # Check if file exists and read last build time
+    if File.exist?(timestamp_file)
+      last_build = File.read(timestamp_file).to_i
+      days_since = (Time.now.to_i - last_build) / (60 * 60 * 24)
+      if days_since < 80
+        UI.message "Only #{days_since} days since last build. Skipping rebuild."
+        next
+      end
+    end
+
+    # Increment build number to ensure a new version
+    increment_build_number(
+      build_number: Time.now.to_i.to_s # Use timestamp as build number for uniqueness
+    )
+
+    # Build the app
+    build_app(
+      workspace: "ios/nutrienttracker.xcworkspace",
+      scheme: "nutrienttracker",
+      export_method: "app-store",
+      clean: true
+    )
+
+    # Upload to TestFlight
+    upload_to_testflight(
+      skip_waiting_for_build_processing: true
+    )
+
+    # Update last build timestamp
+    File.write(timestamp_file, Time.now.to_i.to_s)
+  end
+
+  desc "Force build and upload to TestFlight"
+  lane :testflight do
+    # Increment build number to ensure a new version
+    increment_build_number(
+      build_number: Time.now.to_i.to_s # Use timestamp as build number for uniqueness
+    )
+
+    # Build the app
+    build_app(
+      workspace: "ios/nutrienttracker.xcworkspace",
+      scheme: "nutrienttracker",
+      export_method: "app-store",
+      clean: true
+    )
+
+    # Upload to TestFlight
+    upload_to_testflight(
+      skip_waiting_for_build_processing: true
+    )
+  end
+end
