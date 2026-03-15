@@ -59,9 +59,9 @@ jobs:
       - name: Build and submit to TestFlight with EAS
         if: steps.check_days.outputs.skip == 'false'
         run: |
-          eas build --platform ios --auto-submit
+          eas build --platform ios --auto-submit --non-interactive
         env:
-          EAS_TOKEN: ${{ secrets.EAS_TOKEN }}
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
       - name: Create build success commit
         if: steps.check_days.outputs.skip == 'false'
