@@ -17,14 +17,16 @@
     "production": {
       "autoIncrement": true,
       "ios": {
-        "buildType": "app-store"
+        "distribution": "store"
       }
     }
   },
   "submit": {
     "production": {
       "ios": {
-        "testFlightEnabled": true
+        "appleId": "clairessabrown@gmail.com",
+        "ascAppId": "6758290573",
+        "appleTeamId": "JV6Z8N4Z46"
       }
     }
   }
