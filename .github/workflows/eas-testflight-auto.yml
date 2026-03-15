@@ -1,0 +1,74 @@
+name: EAS Build & TestFlight Auto-Deploy (Every 80 Days)
+
+on:
+  schedule:
+    # Run daily at 2 AM UTC (adjust to your preferred time)
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    # Allows manual triggering from GitHub UI
+
+jobs:
+  check-and-build:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check if 80 days have passed since last build
+        id: check_days
+        run: |
+          # Get the timestamp of the last successful workflow run
+          LAST_BUILD=$(git log --all --grep="EAS Build successful" --format=%at | head -1)
+          
+          if [ -z "$LAST_BUILD" ]; then
+            # No previous build found, proceed with build
+            echo "skip=false" >> $GITHUB_OUTPUT
+            echo "No previous build found. Proceeding with build."
+          else
+            CURRENT_TIME=$(date +%s)
+            DAYS_SINCE=$((($CURRENT_TIME - $LAST_BUILD) / 86400))
+            echo "Days since last build: $DAYS_SINCE"
+            
+            if [ $DAYS_SINCE -ge 80 ]; then
+              echo "skip=false" >> $GITHUB_OUTPUT
+              echo "80+ days since last build. Proceeding with build."
+            else
+              echo "skip=true" >> $GITHUB_OUTPUT
+              echo "Only $DAYS_SINCE days since last build. Skipping build."
+            fi
+          fi
+
+      - name: Setup Node.js
+        if: steps.check_days.outputs.skip == 'false'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        if: steps.check_days.outputs.skip == 'false'
+        run: npm install
+
+      - name: Setup EAS
+        if: steps.check_days.outputs.skip == 'false'
+        run: npm install -g eas-cli
+
+      - name: Build and submit to TestFlight with EAS
+        if: steps.check_days.outputs.skip == 'false'
+        run: |
+          eas build --platform ios --auto-submit
+        env:
+          EAS_TOKEN: ${{ secrets.EAS_TOKEN }}
+
+      - name: Create build success commit
+        if: steps.check_days.outputs.skip == 'false'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git commit --allow-empty -m "EAS Build successful - $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
+          git push
+
+      - name: Skipped message
+        if: steps.check_days.outputs.skip == 'true'
+        run: echo "Build skipped. Next build eligible on $(date -u -d '+$((80 - ($CURRENT_TIME - $LAST_BUILD) / 86400))) days' +'%Y-%m-%d'"
