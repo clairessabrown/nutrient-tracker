@@ -15,10 +15,17 @@
       "distribution": "internal"
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "ios": {
+        "buildType": "app-store"
+      }
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "testFlightEnabled": true
+      }
+    }
   }
 }
