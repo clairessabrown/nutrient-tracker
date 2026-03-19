@@ -80,4 +80,7 @@ export const subscribe = (listener: Listener) => {
   };
 };
 
+// Load persisted meals on startup
+loadMeals();
+
 export default {getMeals, addMeal, deleteMeal, updateMeal, clearMeals, subscribe, loadMeals};

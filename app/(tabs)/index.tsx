@@ -27,7 +27,10 @@ const NutritionLoggerScreen: React.FC = () => {
 	const [showHistory, setShowHistory] = useState(false);
 	const [editingMealId, setEditingMealId] = useState<string | null>(null);
 
-	const totals = meals.reduce(
+	const todayStr = new Date().toDateString();
+	const todaysMeals = meals.filter(m => new Date(m.timestamp).toDateString() === todayStr);
+
+	const totals = todaysMeals.reduce(
 		(acc, meal) => ({
 			calories: acc.calories + meal.calories,
 			protein: acc.protein + meal.protein,
@@ -264,7 +267,7 @@ const NutritionLoggerScreen: React.FC = () => {
 				</View>
 
 				{/* Totals */}
-			{meals.length > 0 && (
+			{todaysMeals.length > 0 && (
 				<View style={styles.totalsSection}>
 					<Text style={styles.totalsTitle}>Daily Totals</Text>
 					<Text style={styles.totalsText}>Calories: {totals.calories} kcal</Text>
@@ -277,8 +280,8 @@ const NutritionLoggerScreen: React.FC = () => {
 
 			{/* Meals list */}
 			<View style={styles.mealsSection}>
-				<Text style={styles.mealsTitle}>Meals ({meals.length})</Text>
-				{meals.map((meal, index) => (
+				<Text style={styles.mealsTitle}>Meals ({todaysMeals.length})</Text>
+				{todaysMeals.map((meal, index) => (
 					<View key={meal.id as any} style={styles.mealItem}>
 						<View style={{flex: 1}}>
 							<Text style={styles.mealNumber}>Meal {index + 1}</Text>
