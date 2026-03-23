@@ -1,7 +1,6 @@
 import React, {useEffect, useState} from 'react';
-import {View, Text, TextInput, Button, StyleSheet, Alert, ScrollView, Modal} from 'react-native';
+import {View, Text, TextInput, Button, StyleSheet, Alert, ScrollView} from 'react-native';
 import mealsStore from '../lib/store';
-import Export from './History';
 
 interface Meal {
 	id: string;
@@ -25,10 +24,12 @@ const NutritionLoggerScreen: React.FC = () => {
 	const [lastWeightDate, setLastWeightDate] = useState<string>(new Date().toDateString());
 	const [currentTime, setCurrentTime] = useState<string>(new Date().toLocaleTimeString());
 	const [meals, setMeals] = useState<Meal[]>(mealsStore.getMeals());
-	const [showHistory, setShowHistory] = useState(false);
 	const [editingMealId, setEditingMealId] = useState<string | null>(null);
 
-	const totals = meals.reduce(
+	const todayStr = new Date().toDateString();
+	const todaysMeals = meals.filter(m => new Date(m.timestamp).toDateString() === todayStr);
+
+	const totals = todaysMeals.reduce(
 		(acc, meal) => ({
 			calories: acc.calories + meal.calories,
 			protein: acc.protein + meal.protein,
@@ -267,13 +268,10 @@ const NutritionLoggerScreen: React.FC = () => {
 				</View>
 			)}
 
-				{/* Open History modal */}
-				<View style={styles.button}>
-					<Button title="History" onPress={() => setShowHistory(true)} color="#e8f5e9" />
-				</View>
+				{/* History is accessible via the Export tab */}
 
 				{/* Totals */}
-			{meals.length > 0 && (
+			{todaysMeals.length > 0 && (
 				<View style={styles.totalsSection}>
 					<Text style={styles.totalsTitle}>Daily Totals</Text>
 					<Text style={styles.totalsText}>Calories: {totals.calories} kcal</Text>
@@ -286,8 +284,8 @@ const NutritionLoggerScreen: React.FC = () => {
 
 			{/* Meals list */}
 			<View style={styles.mealsSection}>
-				<Text style={styles.mealsTitle}>Meals ({meals.length})</Text>
-				{meals.map((meal, index) => (
+				<Text style={styles.mealsTitle}>Meals ({todaysMeals.length})</Text>
+				{todaysMeals.map((meal, index) => (
 					<View key={meal.id as any} style={styles.mealItem}>
 						<View style={{flex: 1}}>
 							<Text style={styles.mealNumber}>Meal {index + 1}</Text>
@@ -306,10 +304,6 @@ const NutritionLoggerScreen: React.FC = () => {
 				))}
 			</View>
 		</ScrollView>
-
-			<Modal visible={showHistory} animationType="slide">
-				<Export onClose={() => setShowHistory(false)} />
-			</Modal>
 		</View>
 	);
 };
