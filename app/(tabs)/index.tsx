@@ -23,6 +23,7 @@ const NutritionLoggerScreen: React.FC = () => {
 	const [fat, setFat] = useState<string>('');
 	const [weight, setWeight] = useState<string>('');
 	const [lastWeightDate, setLastWeightDate] = useState<string>(new Date().toDateString());
+	const [currentTime, setCurrentTime] = useState<string>(new Date().toLocaleTimeString());
 	const [meals, setMeals] = useState<Meal[]>(mealsStore.getMeals());
 	const [showHistory, setShowHistory] = useState(false);
 	const [editingMealId, setEditingMealId] = useState<string | null>(null);
@@ -42,6 +43,13 @@ const NutritionLoggerScreen: React.FC = () => {
 		// Log live changes (optional) so developer can see typed values
 		console.log('[NutritionLogger] input changed', {calories, protein, fiber});
 	}, [calories, protein, fiber]);
+
+	useEffect(() => {
+		const interval = setInterval(() => {
+			setCurrentTime(new Date().toLocaleTimeString());
+		}, 1000);
+		return () => clearInterval(interval);
+	}, []);
 
 	// Human-readable date for the header
 	const dateString = new Date().toLocaleDateString(undefined, {
@@ -169,6 +177,7 @@ const NutritionLoggerScreen: React.FC = () => {
 		<View style={styles.container}>
 			<Text style={styles.title}>Nutrition Logger</Text>
 			<Text style={styles.date}>{dateString}</Text>
+			<Text style={styles.time}>{currentTime}</Text>
 
 			<ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
 				{/* Inputs */}
@@ -408,7 +417,13 @@ const styles = StyleSheet.create({
 		fontSize: 14,
 		color: '#e8f5e9',
 		textAlign: 'center',
-		marginBottom: 8,
+		marginBottom: 4,
+	},
+	time: {
+		fontSize: 13,
+		color: '#e8f5e9',
+		textAlign: 'center',
+		marginBottom: 12,
 	},
 });
 
