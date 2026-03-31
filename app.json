@@ -44,7 +44,15 @@
           }
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Allow Nutrient Tracker to take photos of nutrition labels.",
+          "microphonePermission": false,
+          "photosPermission": "Allow Nutrient Tracker to access photos of nutrition labels."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

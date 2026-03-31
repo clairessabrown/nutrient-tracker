@@ -1,6 +1,10 @@
 import React, {useEffect, useState} from 'react';
-import {View, Text, TextInput, Button, StyleSheet, Alert, ScrollView} from 'react-native';
+import {View, Text, TextInput, Button, StyleSheet, Alert, ScrollView, TouchableOpacity, ActivityIndicator} from 'react-native';
 import mealsStore from '../lib/store';
+import * as ImagePicker from 'expo-image-picker';
+import {Ionicons} from '@expo/vector-icons';
+
+const OPENAI_API_KEY = process.env.EXPO_PUBLIC_OPENAI_API_KEY;
 
 interface Meal {
 	id: string;
@@ -25,6 +29,7 @@ const NutritionLoggerScreen: React.FC = () => {
 	const [currentTime, setCurrentTime] = useState<string>(new Date().toLocaleTimeString());
 	const [meals, setMeals] = useState<Meal[]>(mealsStore.getMeals());
 	const [editingMealId, setEditingMealId] = useState<string | null>(null);
+	const [isScanning, setIsScanning] = useState(false);
 
 	const todayStr = new Date().toDateString();
 	const todaysMeals = meals.filter(m => new Date(m.timestamp).toDateString() === todayStr);
@@ -66,6 +71,92 @@ const NutritionLoggerScreen: React.FC = () => {
 		setLastWeightDate(today);
 		setWeight('');
 	}
+
+	const extractMacros = async (base64: string) => {
+		if (!OPENAI_API_KEY) {
+			Alert.alert('API Key Missing', 'Add your OpenAI API key to the .env file as EXPO_PUBLIC_OPENAI_API_KEY.');
+			return;
+		}
+		setIsScanning(true);
+		try {
+			const response = await fetch('https://api.openai.com/v1/chat/completions', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `Bearer ${OPENAI_API_KEY}`,
+				},
+				body: JSON.stringify({
+					model: 'gpt-4o',
+					messages: [
+						{
+							role: 'user',
+							content: [
+								{
+									type: 'text',
+									text: 'Look at this nutrition label. Extract the per-serving values and return ONLY a JSON object with these keys: calories (number), protein (number, grams), fiber (number, grams), sugar (number, grams — use added sugar if available), fat (number, grams). No extra text, just the JSON.',
+								},
+								{
+									type: 'image_url',
+									image_url: {url: `data:image/jpeg;base64,${base64}`},
+								},
+							],
+						},
+					],
+					max_tokens: 200,
+				}),
+			});
+			const data = await response.json();
+			if (!response.ok) {
+				throw new Error(data.error?.message || 'API error');
+			}
+			const text = data.choices[0].message.content.trim();
+			const json = text.replace(/```json?\n?/g, '').replace(/```/g, '').trim();
+			const macros = JSON.parse(json);
+			if (macros.calories !== undefined) setCalories(String(Math.round(macros.calories)));
+			if (macros.protein !== undefined) setProtein(String(Math.round(macros.protein)));
+			if (macros.fiber !== undefined) setFiber(String(Math.round(macros.fiber)));
+			if (macros.sugar !== undefined) setSugar(String(Math.round(macros.sugar)));
+			if (macros.fat !== undefined) setFat(String(Math.round(macros.fat)));
+		} catch (err: any) {
+			Alert.alert('Scan Failed', err.message || 'Could not read nutrition label.');
+		} finally {
+			setIsScanning(false);
+		}
+	};
+
+	const onScanLabel = () => {
+		Alert.alert('Scan Nutrition Label', 'Choose source:', [
+			{
+				text: 'Take Photo',
+				onPress: async () => {
+					const {status} = await ImagePicker.requestCameraPermissionsAsync();
+					if (status !== 'granted') {
+						Alert.alert('Permission needed', 'Camera access is required to take a photo.');
+						return;
+					}
+					const result = await ImagePicker.launchCameraAsync({base64: true, quality: 0.8});
+					if (!result.canceled && result.assets[0].base64) {
+						await extractMacros(result.assets[0].base64);
+					}
+				},
+			},
+			{
+				text: 'Choose from Library',
+				onPress: async () => {
+					const {status} = await ImagePicker.requestMediaLibraryPermissionsAsync();
+					if (status !== 'granted') {
+						Alert.alert('Permission needed', 'Photo library access is required.');
+						return;
+					}
+					const result = await ImagePicker.launchImageLibraryAsync({base64: true, quality: 0.8});
+					if (!result.canceled && result.assets[0].base64) {
+						await extractMacros(result.assets[0].base64);
+					}
+				},
+			},
+			{text: 'Cancel', style: 'cancel'},
+		]);
+	};
 
 	const onSave = () => {
 		// Calories are required; other fields are optional and default to 0
@@ -254,11 +345,20 @@ const NutritionLoggerScreen: React.FC = () => {
 				/>
 			</View>
 
+			<TouchableOpacity style={styles.scanButton} onPress={onScanLabel} disabled={isScanning}>
+				{isScanning ? (
+					<ActivityIndicator color="#e8f5e9" size="small" />
+				) : (
+					<Ionicons name="camera" size={22} color="#e8f5e9" />
+				)}
+				<Text style={styles.scanText}>{isScanning ? 'Scanning...' : 'Scan Label'}</Text>
+			</TouchableOpacity>
+
 			<View style={styles.button}>
-				<Button 
-					title={editingMealId ? "Update Meal" : "Add Meal"} 
-					onPress={onSave} 
-					color="#f5efe8ff" 
+				<Button
+					title={editingMealId ? "Update Meal" : "Add Meal"}
+					onPress={onSave}
+					color="#f5efe8ff"
 				/>
 			</View>
 
@@ -346,6 +446,22 @@ const styles = StyleSheet.create({
 		padding: 10,
 		borderRadius: 6,
 		fontSize: 16,
+	},
+	scanButton: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'center',
+		backgroundColor: '#0a3d39',
+		borderRadius: 8,
+		paddingVertical: 10,
+		paddingHorizontal: 20,
+		marginBottom: 10,
+		gap: 8,
+	},
+	scanText: {
+		color: '#e8f5e9',
+		fontSize: 15,
+		fontWeight: '500',
 	},
 	button: {
 		marginTop: -10,
