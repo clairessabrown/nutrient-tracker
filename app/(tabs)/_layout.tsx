@@ -33,7 +33,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="History"
         options={{
-          title: 'Export',
+          title: 'Import/Export',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="arrow.up.doc.fill" color={color} />,
         }}
       />

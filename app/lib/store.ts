@@ -88,6 +88,26 @@ export const clearMeals = () => {
   notify();
 };
 
+export const importMeals = async (incoming: MealRecord[], mode: 'merge' | 'replace' = 'merge') => {
+  await ensureLoaded();
+  if (mode === 'replace') {
+    meals = incoming.slice();
+  } else {
+    const existingIds = new Set(meals.map(m => m.id));
+    incoming.forEach(m => {
+      if (!existingIds.has(m.id)) {
+        meals.push(m);
+        existingIds.add(m.id);
+      }
+    });
+  }
+  const oneYearAgo = Date.now() - 365 * 24 * 60 * 60 * 1000;
+  meals = meals.filter(m => m.timestamp > oneYearAgo);
+  meals.sort((a, b) => a.timestamp - b.timestamp);
+  saveMeals();
+  notify();
+};
+
 export const subscribe = (listener: Listener) => {
   listeners.push(listener);
   return () => {
@@ -99,4 +119,4 @@ export const subscribe = (listener: Listener) => {
 // Load persisted meals on startup
 loadPromise = loadMeals();
 
-export default {getMeals, addMeal, deleteMeal, updateMeal, clearMeals, subscribe, loadMeals};
+export default {getMeals, addMeal, deleteMeal, updateMeal, clearMeals, importMeals, subscribe, loadMeals};
